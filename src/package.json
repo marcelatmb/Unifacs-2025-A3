@@ -1,0 +1,16 @@
+{
+  "name": "sistema-reservas",
+  "version": "1.0.0",
+  "description": "Sistema simples de gerenciamento de reservas",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "EQUIPE",
+  "license": "MIT",
+  "dependencies": {
+    "sqlite": "^4.2.1",
+    "sqlite3": "^5.1.6"
+  }
+}
