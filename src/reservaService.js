@@ -80,9 +80,28 @@ async function obterReservasPorPeriodo(db, dataInicio, dataFim) {
     console.log(`Relatório atualizado: ${logPath}`);
 }
 
+async function cancelarReserva(db, idReserva) {
+    if (!idReserva || typeof idReserva !== 'number') {
+        console.error("ID inválido para cancelamento de reserva.");
+        return;
+    }
+
+    const result = await db.run(`UPDATE reservas SET status = 'Cancelada' WHERE id = ?`, [idReserva]);
+
+    if (result.changes === 0) {
+        console.log(`Nenhuma reserva encontrada com ID: ${idReserva}`);
+    } else {
+        console.log(`Reserva ID ${idReserva} cancelada.`);
+    }
+}
+
+
+
+
 module.exports = {
     criarTabelaReservas,
     inserirReserva,
     confirmarReserva,
-    obterReservasPorPeriodo
+    obterReservasPorPeriodo,
+    cancelarReserva
 };
