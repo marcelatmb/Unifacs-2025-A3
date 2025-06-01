@@ -1,15 +1,31 @@
 const { abrirConexao } = require('./database');
-const {
-    criarTabelaReservas,
-    inserirReserva,
-    confirmarReserva,
-    obterReservasPorPeriodo
-} = require('./reservaService');
+const express = require('express');
+const rotasApi = require('./reservasRoutes');
+const {criarTabelaReservas} = require('./reservaService');
+
+const PORT = 3000;
 
 (async () => {
     try {
         const db = await abrirConexao();
         await criarTabelaReservas(db);
+
+        const app = express();
+
+        app.use(express.json())
+
+         // Middleware para disponibilizar a conexão no req
+        app.use((req, res, next) => {
+            req.db = db;
+            next();
+        });
+
+        // Usa o router das rotas
+        app.use('/reservas', rotasApi);
+
+        app.listen(PORT, () => {
+            console.log(`Servidor rodando na porta ${PORT}`);
+        });
 
         // Exemplos de uso
         // await inserirReserva(db, "2024-07-20", "19:00", 5, 4, "João Silva", "Confirmada", "Maria");
@@ -19,7 +35,7 @@ const {
         // await confirmarReserva(db, 2);
         // await obterReservasPorPeriodo(db, "2024-07-22", "2024-07-23");
 
-        await db.close();
+        //await db.close();
     } catch (err) {
         console.error("Erro:", err.message);
     }
