@@ -34,20 +34,57 @@ router.post('/', async (req, res) => {
     }
 });
 
-// READ - Consultar relatórios
+// READ - Consultar relatórios por data
 router.get('/relatorio', async (req, res) => {
     try {
         const { dataInicio, dataFim } = req.query;
         if (!dataInicio || !dataFim) {
-            return res.status(400).json({ error: 'Informe dataInicio e dataFim no formato YYYY-MM-DD.' });
+            return res.status(400).json({ error: 'Informe a data inicial e a data final no formato YYYY-MM-DD.' });
         }
         
-        await service.obterReservasPorPeriodo(req.db, dataInicio, dataFim);
+        reservas = await service.obterReservasPorPeriodo(req.db, dataInicio, dataFim);
+        res.json({ message: 'Relatório gerado com sucesso!', reservas });
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao gerar relatório.' });
+    }
+});
+
+// READ - Consultar reservas pela mesa
+
+router.get('/mesa/:numero_mesa', async (req, res) => {
+    try {
+        const numero_mesa = parseInt(req.params.numero_mesa, 10);
+        if (isNaN(numero_mesa) || numero_mesa <= 0) {
+            return res.status(400).json({ error: 'Número da mesa inválido.' });
+        }
+        await service.obterReservasPorMesa(req.db, numero_mesa);
         res.json({ message: 'Relatório gerado com sucesso! Verifique o diretório de logs.' });
     } catch (error) {
         res.status(500).json({ error: 'Erro ao gerar relatório.' });
     }
 });
+
+// READ - Consultar mesas por status
+
+router.get('/status/:status', async (req, res) => {
+    try {
+        const status = req.params.status;
+
+        // Chamar a função correta
+        const mesas = await service.obterMesasPorStatus(req.db, status);
+
+        if (mesas.length === 0) {
+            return res.status(404).json({ message: 'Nenhuma mesa encontrada com esse status.' });
+        }
+
+        res.json({ message: 'Relatório gerado com sucesso! Verifique o diretório de logs.' });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Erro ao buscar mesas por status.' });
+    }
+});
+
 
 // UPDATE - Confirmar uma reserva
 router.put('/confirmar/:idReserva', async (req, res) => {
