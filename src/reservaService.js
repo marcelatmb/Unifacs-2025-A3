@@ -50,6 +50,14 @@ async function obterReservasPorPeriodo(db, dataInicio, dataFim) {
         console.log("Nenhuma reserva encontrada no período especificado.");
         return;
     }
+    
+    // Relatório de reservas por perído no console
+    console.log(`\n--- Relatório de Reservas de ${dataInicio} a ${dataFim} ---`);
+    rows.forEach(row => {
+        console.log(`ID: ${row.id}, Data: ${row.data}, Hora: ${row.hora}, Mesa: ${row.numero_mesa}, Pessoas: ${row.qtd_pessoas}, Responsável: ${row.nome_responsavel}, Status: ${row.status}, Garçom: ${row.garcom || 'N/A'}`);
+    });
+    console.log(`Total de reservas encontradas: ${rows.length}`);
+    console.log(`--------------------------------------------------------\n`);
 
     const now = new Date();
     const dataHoje = now.toISOString().slice(0, 10);
@@ -60,7 +68,7 @@ async function obterReservasPorPeriodo(db, dataInicio, dataFim) {
 
     await fs.mkdir(logDir, { recursive: true });
 
-    let logEntry = `\n====================\n${dataHoje} ${horaAgora}\nTipo: Consulta por período\n--------------------\n`;
+    let logEntry = `\n====================\n${dataHoje} ${horaAgora}\nTipo: Consulta por período (${dataInicio} a ${dataFim})\n--------------------\n`;
 
     for (const row of rows) {
         logEntry += `ID: ${row.id}\n`;
@@ -77,7 +85,7 @@ async function obterReservasPorPeriodo(db, dataInicio, dataFim) {
     logEntry += `Total de reservas encontradas: ${rows.length}\n=======================\n`;
 
     await fs.appendFile(logPath, logEntry, 'utf8');
-    console.log(`Relatório atualizado: ${logPath}`);
+    console.log(`\x1b[32m[Reservas]\x1b[0m Relatório atualizado: ${logPath}`);
 
     return rows;
 }
@@ -105,6 +113,14 @@ async function obterReservasPorMesa(db, numero_mesa) {
         console.log(`\x1b[33m[Reservas]\x1b[0m Nenhuma reserva encontrada para a mesa ${numero_mesa}.`);
         return [];
     }
+
+    // Relatório de reservas por mesa no console
+    console.log(`\n--- Relatório de Reservas da mesa número ${numero_mesa} ---`);
+    rows.forEach(row => {
+        console.log(`ID: ${row.id}, Data: ${row.data}, Hora: ${row.hora}, Mesa: ${row.numero_mesa}, Pessoas: ${row.qtd_pessoas}, Responsável: ${row.garcom || 'N/A'}`);
+    });
+    console.log(`Total de reservas encontradas: ${rows.length}`);
+    console.log(`-----------------------------------------------\n`);
 
     const now = new Date();
     const dataHoje = now.toISOString().slice(0, 10);
@@ -158,11 +174,31 @@ async function obterMesasPorStatus(db, status) {
         return [];
     }
 
-    console.log(`Mesas com status mais recente "${status}":`);
-    for (const row of rows) {
-        console.log(`Mesa: ${row.numero_mesa} - Status: ${row.status}`);
-    }
+    // Relatório de reservas por status no console:
+    console.log(`\n--- Mesas com status ${status} ---`);
+    rows.forEach(row => {
+        console.log(`Mesa: ${row.numero_mesa}, Status: ${row.status}`);
+    });
+    console.log(`Total de mesas encontradas: ${rows.length}`);
+    console.log("----------------------------------\n")
 
+    // Relatório de reservas por status no log:
+    const now = new Date();
+    const dataHoje = now.toISOString().slice(0, 10);
+    const horaAgora = now.toLocaleTimeString();
+    const logDir = path.join(__dirname, 'logs');
+    const logPath = path.join(logDir, `relatorio_${dataHoje}.log`);
+    await fs.mkdir(logDir, { recursive: true });
+    let logEntry = `\n====================\n${dataHoje} ${horaAgora}\nTipo: Consulta por status (${status})\n--------------------\n`;
+    for (const row of rows) {
+        logEntry += `Mesa: ${row.numero_mesa}\n`;
+        logEntry += `Status: ${row.status}\n`;
+        logEntry += `-----------------------\n`;
+    }
+    logEntry += `Total de mesas encontradas: ${rows.length}\n=======================\n`;
+    await fs.appendFile(logPath, logEntry, 'utf8');
+    console.log(`\x1b[32m[Reservas]\x1b[0m Relatório atualizado: ${logPath}`);
+    
     return rows;
 }
 
