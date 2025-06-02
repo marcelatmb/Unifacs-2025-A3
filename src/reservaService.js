@@ -37,6 +37,8 @@ async function confirmarReserva(db, idReserva) {
 
     if (result.changes === 0) {
         console.log(`Nenhuma reserva encontrada com ID: ${idReserva}`);
+        throw new Error(`Reserva não encontrada`);
+        
     } else {
         console.log(`Reserva ID ${idReserva} confirmada.`);
     }
@@ -100,6 +102,7 @@ async function cancelarReserva(db, idReserva) {
 
     if (result.changes === 0) {
         console.log(`Nenhuma reserva encontrada com ID: ${idReserva}`);
+        throw new Error(`Reserva não encontrada`);
     } else {
         console.log(`Reserva ID ${idReserva} cancelada.`);
     }
