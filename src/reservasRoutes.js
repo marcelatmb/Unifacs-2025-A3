@@ -30,7 +30,10 @@ router.post('/', async (req, res) => {
         res.status(201).json({ message: 'Reserva criada com sucesso!' });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Erro ao criar reserva.' });
+        res.status(500).json({
+            error: 'Erro ao criar reserva.',
+            detalhe: error.message
+        });
     }
 });
 
@@ -41,16 +44,19 @@ router.get('/relatorio', async (req, res) => {
         if (!dataInicio || !dataFim) {
             return res.status(400).json({ error: 'Informe a data inicial e a data final no formato YYYY-MM-DD.' });
         }
-        
+
         reservas = await service.obterReservasPorPeriodo(req.db, dataInicio, dataFim);
         res.json({ message: 'Relatório gerado com sucesso!', reservas });
     } catch (error) {
-        res.status(500).json({ error: 'Erro ao gerar relatório.' });
+        console.error(error);
+        res.status(500).json({
+            error: 'Erro ao gerar relatório.',
+            detalhe: error.message
+        });
     }
 });
 
 // READ - Consultar reservas pela mesa
-
 router.get('/mesa/:numero_mesa', async (req, res) => {
     try {
         const numero_mesa = parseInt(req.params.numero_mesa, 10);
@@ -58,33 +64,36 @@ router.get('/mesa/:numero_mesa', async (req, res) => {
             return res.status(400).json({ error: 'Número da mesa inválido.' });
         }
         reservas = await service.obterReservasPorMesa(req.db, numero_mesa);
-        res.json({ message: 'Relatório gerado com sucesso! Verifique o diretório de logs.' }, reservas);
+        res.json({ message: 'Relatório gerado com sucesso! Verifique o diretório de logs.', reservas });
     } catch (error) {
-        res.status(500).json({ error: 'Erro ao gerar relatório.' });
+        console.error(error);
+        res.status(500).json({
+            error: 'Erro ao gerar relatório.',
+            detalhe: error.message
+        });
     }
 });
 
 // READ - Consultar mesas por status
-
 router.get('/status/:status', async (req, res) => {
     try {
         const status = req.params.status;
 
-        // Chamar a função correta
         const mesas = await service.obterMesasPorStatus(req.db, status);
 
         if (mesas.length === 0) {
             return res.status(404).json({ message: 'Nenhuma mesa encontrada com esse status.' });
         }
 
-        res.json({ message: 'Relatório gerado com sucesso! Verifique o diretório de logs.' }, mesas);
-
+        res.json({ message: 'Relatório gerado com sucesso! Verifique o diretório de logs.', mesas });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Erro ao buscar mesas por status.' });
+        res.status(500).json({
+            error: 'Erro ao buscar mesas por status.',
+            detalhe: error.message
+        });
     }
 });
-
 
 // UPDATE - Confirmar uma reserva
 router.put('/confirmar/:idReserva', async (req, res) => {
@@ -94,15 +103,22 @@ router.put('/confirmar/:idReserva', async (req, res) => {
         if (isNaN(idReserva)) {
             return res.status(400).json({ error: 'ID de reserva inválido.' });
         }
-        
+
         await service.confirmarReserva(req.db, idReserva);
         res.json({ message: 'Reserva confirmada com sucesso!' });
 
     } catch (error) {
+        console.error(error);
         if (error.message === 'Reserva não encontrada') {
-            return res.status(404).json({ error: error.message });
+            return res.status(404).json({
+                error: 'Erro ao confirmar reserva.',
+                detalhe: error.message
+            });
         }
-        res.status(500).json({ error: 'Erro ao confirmar reserva.' });
+        return res.status(400).json({
+            error: 'Erro ao confirmar reserva.',
+            detalhe: error.message
+        });
     }
 });
 
@@ -118,10 +134,17 @@ router.put('/cancelar/:idReserva', async (req, res) => {
         await service.cancelarReserva(req.db, idReserva);
         res.json({ message: 'Reserva cancelada com sucesso!' });
     } catch (error) {
+        console.error(error);
         if (error.message === 'Reserva não encontrada') {
-            return res.status(404).json({ error: error.message });
+            return res.status(404).json({
+                error: 'Erro ao cancelar reserva.',
+                detalhe: error.message
+            });
         }
-        res.status(500).json({ error: 'Erro ao cancelar reserva.' });
+        return res.status(400).json({
+            error: 'Erro ao cancelar reserva.',
+            detalhe: error.message
+        });
     }
 });
 

@@ -47,7 +47,7 @@ async function confirmarReserva(db, idReserva) {
     if (!reserva) throw new Error(`Reserva não encontrada.`);
     if (reserva.status !== 'Pendente') throw new Error(`Somente reservas pendentes podem ser confirmadas.`);
 
-    const result = await db.run(`UPDATE reservas SET status = 'Confirmada' WHERE id = ?`, [idReserva]);
+    await db.run(`UPDATE reservas SET status = 'Confirmada' WHERE id = ?`, [idReserva]);
     console.log(`Reserva ID ${idReserva} confirmada.`);
 }
 
@@ -56,7 +56,7 @@ async function cancelarReserva(db, idReserva) {
     if (!reserva) throw new Error(`Reserva não encontrada.`);
     if (reserva.status !== 'Pendente') throw new Error(`Somente reservas pendentes podem ser canceladas.`);
 
-    const result = await db.run(`UPDATE reservas SET status = 'Cancelada' WHERE id = ?`, [idReserva]);
+    await db.run(`UPDATE reservas SET status = 'Cancelada' WHERE id = ?`, [idReserva]);
     console.log(`Reserva ID ${idReserva} cancelada.`);
 }
 
@@ -65,25 +65,14 @@ async function obterReservasPorPeriodo(db, dataInicio, dataFim) {
     const rows = await db.all(sql, [dataInicio, dataFim]);
 
     if (rows.length === 0) {
-        console.log("Nenhuma reserva encontrada no período especificado.");
-        return;
+        throw new Error("Nenhuma reserva encontrada no período especificado.");
     }
-    
-    // Relatório de reservas por perído no console
-    console.log(`\n--- Relatório de Reservas de ${dataInicio} a ${dataFim} ---`);
-    rows.forEach(row => {
-        console.log(`ID: ${row.id}, Data: ${row.data}, Hora: ${row.hora}, Mesa: ${row.numero_mesa}, Pessoas: ${row.qtd_pessoas}, Responsável: ${row.nome_responsavel}, Status: ${row.status}, Garçom: ${row.garcom || 'N/A'}`);
-    });
-    console.log(`Total de reservas encontradas: ${rows.length}`);
-    console.log(`--------------------------------------------------------\n`);
 
     const now = new Date();
     const dataHoje = now.toISOString().slice(0, 10);
     const horaAgora = now.toLocaleTimeString();
-
     const logDir = path.join(__dirname, 'logs');
     const logPath = path.join(logDir, `relatorio_${dataHoje}.log`);
-
     await fs.mkdir(logDir, { recursive: true });
 
     let logEntry = `\n====================\n${dataHoje} ${horaAgora}\nTipo: Consulta por período (${dataInicio} a ${dataFim})\n--------------------\n`;
@@ -110,24 +99,16 @@ async function obterReservasPorMesa(db, numero_mesa) {
     const rows = await db.all(sql, [numero_mesa]);
 
     if (rows.length === 0) {
-        console.log(`\x1b[33m[Reservas]\x1b[0m Nenhuma reserva encontrada para a mesa ${numero_mesa}.`);
-        return [];
+        throw new Error(`Nenhuma reserva encontrada para a mesa ${numero_mesa}.`);
     }
-
-    console.log(`\n--- Relatório de Reservas da mesa número ${numero_mesa} ---`);
-    rows.forEach(row => {
-        console.log(`ID: ${row.id}, Data: ${row.data}, Hora: ${row.hora}, Mesa: ${row.numero_mesa}, Pessoas: ${row.qtd_pessoas}, Responsável: ${row.nome_responsavel}, Status: ${row.status}, Garçom: ${row.garcom || 'N/A'}`);
-    });
-    console.log(`Total de reservas encontradas: ${rows.length}`);
-    console.log(`-----------------------------------------------\n`);
 
     const now = new Date();
     const dataHoje = now.toISOString().slice(0, 10);
     const horaAgora = now.toLocaleTimeString();
-
     const logDir = path.join(__dirname, 'logs');
     const logPath = path.join(logDir, `relatorio_${dataHoje}.log`);
     await fs.mkdir(logDir, { recursive: true });
+
     let logEntry = `\n====================\n${dataHoje} ${horaAgora}\nTipo: Consulta por mesa (${numero_mesa})\n--------------------\n`;
     for (const row of rows) {
         logEntry += `ID: ${row.id}\n`;
@@ -168,25 +149,16 @@ async function obterMesasPorStatus(db, status) {
     const rows = await db.all(sql, [status]);
 
     if (rows.length === 0) {
-        console.log(`Nenhuma mesa encontrada com status mais recente: ${status}`);
-        return [];
+        throw new Error(`Nenhuma mesa encontrada com status mais recente: ${status}.`);
     }
-    
-    // Relatório de reservas por status no console:
-    console.log(`\n--- Mesas com status ${status} ---`);
-    rows.forEach(row => {
-        console.log(`Mesa: ${row.numero_mesa}, Status: ${row.status}`);
-    });
-    console.log(`Total de mesas encontradas: ${rows.length}`);
-    console.log("----------------------------------\n")
 
-    // Relatório de reservas por status no log:
     const now = new Date();
     const dataHoje = now.toISOString().slice(0, 10);
     const horaAgora = now.toLocaleTimeString();
     const logDir = path.join(__dirname, 'logs');
     const logPath = path.join(logDir, `relatorio_${dataHoje}.log`);
     await fs.mkdir(logDir, { recursive: true });
+
     let logEntry = `\n====================\n${dataHoje} ${horaAgora}\nTipo: Consulta por status (${status})\n--------------------\n`;
     for (const row of rows) {
         logEntry += `Mesa: ${row.numero_mesa}\n`;
