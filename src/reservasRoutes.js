@@ -29,7 +29,7 @@ router.post('/', async (req, res) => {
 
         res.status(201).json({ message: 'Reserva criada com sucesso!' });
     } catch (error) {
-        console.error(error);
+        console.error('Erro:', error.message);
         res.status(500).json({
             error: 'Erro ao criar reserva.',
             detalhe: error.message
@@ -48,7 +48,7 @@ router.get('/relatorio', async (req, res) => {
         reservas = await service.obterReservasPorPeriodo(req.db, dataInicio, dataFim);
         res.json({ message: 'Relatório gerado com sucesso!', reservas });
     } catch (error) {
-        console.error(error);
+        console.error('Erro:', error.message);
         res.status(500).json({
             error: 'Erro ao gerar relatório.',
             detalhe: error.message
@@ -66,7 +66,7 @@ router.get('/mesa/:numero_mesa', async (req, res) => {
         reservas = await service.obterReservasPorMesa(req.db, numero_mesa);
         res.json({ message: 'Relatório gerado com sucesso! Verifique o diretório de logs.', reservas });
     } catch (error) {
-        console.error(error);
+        console.error('Erro:', error.message);
         res.status(500).json({
             error: 'Erro ao gerar relatório.',
             detalhe: error.message
@@ -87,7 +87,7 @@ router.get('/status/:status', async (req, res) => {
 
         res.json({ message: 'Relatório gerado com sucesso! Verifique o diretório de logs.', mesas });
     } catch (error) {
-        console.error(error);
+        console.error('Erro:', error.message);
         res.status(500).json({
             error: 'Erro ao buscar mesas por status.',
             detalhe: error.message
@@ -108,7 +108,7 @@ router.put('/confirmar/:idReserva', async (req, res) => {
         res.json({ message: 'Reserva confirmada com sucesso!' });
 
     } catch (error) {
-        console.error(error);
+        console.error('Erro:', error.message);
         if (error.message === 'Reserva não encontrada') {
             return res.status(404).json({
                 error: 'Erro ao confirmar reserva.',
@@ -134,7 +134,7 @@ router.put('/cancelar/:idReserva', async (req, res) => {
         await service.cancelarReserva(req.db, idReserva);
         res.json({ message: 'Reserva cancelada com sucesso!' });
     } catch (error) {
-        console.error(error);
+        console.error('Erro:', error.message);
         if (error.message === 'Reserva não encontrada') {
             return res.status(404).json({
                 error: 'Erro ao cancelar reserva.',
