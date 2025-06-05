@@ -1,6 +1,8 @@
 const fs = require('fs/promises');
 const path = require('path');
 
+const STATUS_VALIDOS = ['Pendente', 'Confirmada', 'Cancelada'];
+
 async function criarTabelaReservas(db) {
     const sql = `
         CREATE TABLE IF NOT EXISTS reservas (
@@ -19,6 +21,19 @@ async function criarTabelaReservas(db) {
 }
 
 async function inserirReserva(db, data, hora, numeroMesa, qtdPessoas, nomeResponsavel, status, garcom) {
+    if (!STATUS_VALIDOS.includes(status)) {
+        throw new Error(`Status inválido: ${status}. Use apenas: ${STATUS_VALIDOS.join(', ')}`);
+    }
+
+    const sqlVerifica = `
+        SELECT * FROM reservas WHERE data = ? AND hora = ? AND numero_mesa = ? AND status != 'Cancelada'
+    `;
+    const conflito = await db.get(sqlVerifica, [data, hora, numeroMesa]);
+
+    if (conflito) {
+        throw new Error(`Já existe uma reserva para a mesa ${numeroMesa} neste horário.`);
+    }
+
     const sql = `
         INSERT INTO reservas (data, hora, numero_mesa, qtd_pessoas, nome_responsavel, status, garcom)
         VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -28,20 +43,21 @@ async function inserirReserva(db, data, hora, numeroMesa, qtdPessoas, nomeRespon
 }
 
 async function confirmarReserva(db, idReserva) {
-    if (!idReserva || typeof idReserva !== 'number') {
-        console.error("ID inválido para confirmação de reserva.");
-        return;
-    }
+    const reserva = await db.get(`SELECT status FROM reservas WHERE id = ?`, [idReserva]);
+    if (!reserva) throw new Error(`Reserva não encontrada.`);
+    if (reserva.status !== 'Pendente') throw new Error(`Somente reservas pendentes podem ser confirmadas.`);
 
     const result = await db.run(`UPDATE reservas SET status = 'Confirmada' WHERE id = ?`, [idReserva]);
+    console.log(`Reserva ID ${idReserva} confirmada.`);
+}
 
-    if (result.changes === 0) {
-        console.log(`Nenhuma reserva encontrada com ID: ${idReserva}`);
-        throw new Error(`Reserva não encontrada`);
-        
-    } else {
-        console.log(`Reserva ID ${idReserva} confirmada.`);
-    }
+async function cancelarReserva(db, idReserva) {
+    const reserva = await db.get(`SELECT status FROM reservas WHERE id = ?`, [idReserva]);
+    if (!reserva) throw new Error(`Reserva não encontrada.`);
+    if (reserva.status !== 'Pendente') throw new Error(`Somente reservas pendentes podem ser canceladas.`);
+
+    const result = await db.run(`UPDATE reservas SET status = 'Cancelada' WHERE id = ?`, [idReserva]);
+    console.log(`Reserva ID ${idReserva} cancelada.`);
 }
 
 async function obterReservasPorPeriodo(db, dataInicio, dataFim) {
@@ -71,7 +87,6 @@ async function obterReservasPorPeriodo(db, dataInicio, dataFim) {
     await fs.mkdir(logDir, { recursive: true });
 
     let logEntry = `\n====================\n${dataHoje} ${horaAgora}\nTipo: Consulta por período (${dataInicio} a ${dataFim})\n--------------------\n`;
-
     for (const row of rows) {
         logEntry += `ID: ${row.id}\n`;
         logEntry += `Data: ${row.data}\n`;
@@ -83,29 +98,11 @@ async function obterReservasPorPeriodo(db, dataInicio, dataFim) {
         logEntry += `Garçom: ${row.garcom || 'N/A'}\n`;
         logEntry += `-----------------------\n`;
     }
-
     logEntry += `Total de reservas encontradas: ${rows.length}\n=======================\n`;
-
     await fs.appendFile(logPath, logEntry, 'utf8');
     console.log(`\x1b[32m[Reservas]\x1b[0m Relatório atualizado: ${logPath}`);
 
     return rows;
-}
-
-async function cancelarReserva(db, idReserva) {
-    if (!idReserva || typeof idReserva !== 'number') {
-        console.error("ID inválido para cancelamento de reserva.");
-        return;
-    }
-
-    const result = await db.run(`UPDATE reservas SET status = 'Cancelada' WHERE id = ?`, [idReserva]);
-
-    if (result.changes === 0) {
-        console.log(`Nenhuma reserva encontrada com ID: ${idReserva}`);
-        throw new Error(`Reserva não encontrada`);
-    } else {
-        console.log(`Reserva ID ${idReserva} cancelada.`);
-    }
 }
 
 async function obterReservasPorMesa(db, numero_mesa) {
@@ -117,10 +114,9 @@ async function obterReservasPorMesa(db, numero_mesa) {
         return [];
     }
 
-    // Relatório de reservas por mesa no console
     console.log(`\n--- Relatório de Reservas da mesa número ${numero_mesa} ---`);
     rows.forEach(row => {
-        console.log(`ID: ${row.id}, Data: ${row.data}, Hora: ${row.hora}, Mesa: ${row.numero_mesa}, Pessoas: ${row.qtd_pessoas}, Responsável: ${row.garcom || 'N/A'}`);
+        console.log(`ID: ${row.id}, Data: ${row.data}, Hora: ${row.hora}, Mesa: ${row.numero_mesa}, Pessoas: ${row.qtd_pessoas}, Responsável: ${row.nome_responsavel}, Status: ${row.status}, Garçom: ${row.garcom || 'N/A'}`);
     });
     console.log(`Total de reservas encontradas: ${rows.length}`);
     console.log(`-----------------------------------------------\n`);
@@ -131,11 +127,8 @@ async function obterReservasPorMesa(db, numero_mesa) {
 
     const logDir = path.join(__dirname, 'logs');
     const logPath = path.join(logDir, `relatorio_${dataHoje}.log`);
-
     await fs.mkdir(logDir, { recursive: true });
-
     let logEntry = `\n====================\n${dataHoje} ${horaAgora}\nTipo: Consulta por mesa (${numero_mesa})\n--------------------\n`;
-
     for (const row of rows) {
         logEntry += `ID: ${row.id}\n`;
         logEntry += `Data: ${row.data}\n`;
@@ -147,9 +140,7 @@ async function obterReservasPorMesa(db, numero_mesa) {
         logEntry += `Garçom: ${row.garcom || 'N/A'}\n`;
         logEntry += `-----------------------\n`;
     }
-
     logEntry += `Total de reservas encontradas: ${rows.length}\n=======================\n`;
-
     await fs.appendFile(logPath, logEntry, 'utf8');
     console.log(`\x1b[32m[Reservas]\x1b[0m Relatório atualizado: ${logPath}`);
 
@@ -157,6 +148,10 @@ async function obterReservasPorMesa(db, numero_mesa) {
 }
 
 async function obterMesasPorStatus(db, status) {
+    if (!STATUS_VALIDOS.includes(status)) {
+        throw new Error(`Status inválido: ${status}. Use apenas: ${STATUS_VALIDOS.join(', ')}`);
+    }
+
     const sql = `
         SELECT r1.numero_mesa, r1.status
         FROM reservas r1
@@ -176,7 +171,7 @@ async function obterMesasPorStatus(db, status) {
         console.log(`Nenhuma mesa encontrada com status mais recente: ${status}`);
         return [];
     }
-
+    
     // Relatório de reservas por status no console:
     console.log(`\n--- Mesas com status ${status} ---`);
     rows.forEach(row => {
@@ -201,17 +196,16 @@ async function obterMesasPorStatus(db, status) {
     logEntry += `Total de mesas encontradas: ${rows.length}\n=======================\n`;
     await fs.appendFile(logPath, logEntry, 'utf8');
     console.log(`\x1b[32m[Reservas]\x1b[0m Relatório atualizado: ${logPath}`);
-    
+
     return rows;
 }
-
 
 module.exports = {
     criarTabelaReservas,
     inserirReserva,
     confirmarReserva,
-    obterReservasPorPeriodo,
     cancelarReserva,
+    obterReservasPorPeriodo,
     obterReservasPorMesa,
     obterMesasPorStatus
 };
