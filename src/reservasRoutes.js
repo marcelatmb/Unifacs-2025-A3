@@ -13,6 +13,7 @@ router.post('/', async (req, res) => {
         const { data, hora, numero_mesa, qtd_pessoas, nome_responsavel, status, garcom } = req.body;
 
         if (!data || !hora || !numero_mesa || !qtd_pessoas || !nome_responsavel || !status) {
+            console.error('Erro: Todos os campos obrigatórios devem ser preenchidos.');
             return res.status(400).json({ error: 'Todos os campos obrigatórios devem ser preenchidos.' });
         }
 
@@ -42,10 +43,11 @@ router.get('/relatorio', async (req, res) => {
     try {
         const { dataInicio, dataFim } = req.query;
         if (!dataInicio || !dataFim) {
+            console.error('Erro: Informe a data inicial e a data final no formato YYYY-MM-DD.');
             return res.status(400).json({ error: 'Informe a data inicial e a data final no formato YYYY-MM-DD.' });
         }
 
-        reservas = await service.obterReservasPorPeriodo(req.db, dataInicio, dataFim);
+        const reservas = await service.obterReservasPorPeriodo(req.db, dataInicio, dataFim);
         res.json({ message: 'Relatório gerado com sucesso!', reservas });
     } catch (error) {
         console.error('Erro:', error.message);
@@ -61,9 +63,10 @@ router.get('/mesa/:numero_mesa', async (req, res) => {
     try {
         const numero_mesa = parseInt(req.params.numero_mesa, 10);
         if (isNaN(numero_mesa) || numero_mesa <= 0) {
+            console.error('Erro: Número da mesa inválido.');
             return res.status(400).json({ error: 'Número da mesa inválido.' });
         }
-        reservas = await service.obterReservasPorMesa(req.db, numero_mesa);
+        const reservas = await service.obterReservasPorMesa(req.db, numero_mesa);
         res.json({ message: 'Relatório gerado com sucesso! Verifique o diretório de logs.', reservas });
     } catch (error) {
         console.error('Erro:', error.message);
@@ -82,6 +85,7 @@ router.get('/status/:status', async (req, res) => {
         const mesas = await service.obterMesasPorStatus(req.db, status);
 
         if (mesas.length === 0) {
+            console.error('Erro: Nenhuma mesa encontrada com esse status.');
             return res.status(404).json({ message: 'Nenhuma mesa encontrada com esse status.' });
         }
 
@@ -101,6 +105,7 @@ router.put('/confirmar/:idReserva', async (req, res) => {
         const idReserva = parseInt(req.params.idReserva, 10);
 
         if (isNaN(idReserva)) {
+            console.error('Erro: ID de reserva inválido.');
             return res.status(400).json({ error: 'ID de reserva inválido.' });
         }
 
@@ -128,6 +133,7 @@ router.put('/cancelar/:idReserva', async (req, res) => {
         const idReserva = parseInt(req.params.idReserva, 10);
 
         if (isNaN(idReserva)) {
+            console.error('Erro: ID de reserva inválido.');
             return res.status(400).json({ error: 'ID de reserva inválido.' });
         }
 
