@@ -1,14 +1,16 @@
 const { abrirConexao } = require('./database');
 const express = require('express');
 const rotasApi = require('./reservasRoutes');
-const {criarTabelaReservas} = require('./reservaService');
+const reservaService2 = require('./reservaService2');
 
 const PORT = 3000;
 
 (async () => {
     try {
         const db = await abrirConexao();
-        await criarTabelaReservas(db);
+        await reservaService2.criarTabelaMesas(db);
+        await reservaService2.inserirMesasPadrao(db);
+        await reservaService2.criarTabelaReservas(db);
 
         const app = express();
 
